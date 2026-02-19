@@ -1,7 +1,8 @@
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    FLASK_APP=wsgi:app
 
 WORKDIR /app
 
@@ -15,4 +16,4 @@ COPY . .
 RUN mkdir -p /app/instance /app/static/uploads
 
 EXPOSE 5000
-CMD ["sh", "-c", "python -m flask db upgrade || true; exec python -m gunicorn -w 2 -b 0.0.0.0:${PORT:-5000} wsgi:app"]
+CMD ["sh", "-c", "python -m flask --app wsgi:app db upgrade || true; exec python -m gunicorn -w 2 -b 0.0.0.0:${PORT:-5000} wsgi:app"]
