@@ -1,3 +1,4 @@
+gunicorn
 Flask
 Flask-Login
 Flask-Bcrypt
@@ -5,6 +6,5 @@ Flask-WTF
 Flask-Migrate
 Flask-SQLAlchemy
 python-dotenv
-gunicorn
 requests
 reportlab
