@@ -15,4 +15,4 @@ COPY . .
 RUN mkdir -p /app/instance /app/static/uploads
 
 EXPOSE 5000
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "wsgi:app"]
+CMD ["sh", "-c", "python -m flask db upgrade || true; exec python -m gunicorn -w 2 -b 0.0.0.0:${PORT:-5000} wsgi:app"]
