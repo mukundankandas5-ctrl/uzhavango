@@ -8,3 +8,4 @@ Flask-SQLAlchemy
 python-dotenv
 requests
 reportlab
+psycopg2-binary
