@@ -33,5 +33,4 @@ class Tractor(TimestampMixin, db.Model):
     __table_args__ = (
         db.Index("ix_tractors_owner_available", "owner_id", "is_available"),
         db.Index("ix_tractors_created_at", "created_at"),
-        db.Index("ix_tractors_pincode", "pincode"),
     )
