@@ -95,6 +95,35 @@ nav a {
     margin-left: 16px;
     font-weight: 600;
 }
+.topbar nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.user-chip {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 6px 10px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.05);
+    line-height: 1.15;
+}
+.user-chip strong {
+    font-size: 0.86rem;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.user-chip small {
+    color: #4b5d6b;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
 .icon-btn {
     background: #fff;
     border: 1px solid var(--line);
@@ -136,6 +165,16 @@ nav a {
 .drawer-item { border: 1px solid var(--line); border-radius: 10px; padding: 8px; margin-bottom: 8px; }
 .drawer-item.unread { border-left: 4px solid #0A7F3F; }
 .btn.small { padding: 5px 8px; font-size: 0.75rem; }
+
+@media (max-width: 900px) {
+    .user-chip {
+        align-items: flex-start;
+        max-width: 44vw;
+    }
+    .user-chip strong {
+        max-width: 42vw;
+    }
+}
 
 .page { padding: 24px 5vw 42px; }
 

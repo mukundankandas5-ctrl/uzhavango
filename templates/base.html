@@ -23,6 +23,10 @@
     </a>
     <nav>
         {% if current_user.is_authenticated %}
+            <span class="user-chip" title="Logged in user">
+                <strong>{{ current_user.full_name }}</strong>
+                <small>{{ current_user.role|title }}</small>
+            </span>
             <a href="{{ url_for('web_dashboard.dashboard') }}">Dashboard</a>
             {% if current_user.role == 'admin' %}
                 <a href="{{ url_for('web_admin.admin_dashboard') }}">Admin</a>

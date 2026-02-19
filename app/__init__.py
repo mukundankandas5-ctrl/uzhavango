@@ -201,6 +201,27 @@ def _ensure_sqlite_runtime_compat(app):
         rows = db.session.execute(text(f"PRAGMA table_info({table_name})")).fetchall()
         return any(row[1] == column_name for row in rows)
 
+    def sanitize_datetime_columns(table_name, columns):
+        if not table_exists(table_name):
+            return
+        table_info = {row[1]: row for row in db.session.execute(text(f"PRAGMA table_info({table_name})")).fetchall()}
+        for col in columns:
+            if col not in table_info:
+                continue
+            # PRAGMA table_info: row[3] => 1 means NOT NULL
+            is_not_null = bool(table_info[col][3])
+            replacement = "datetime('now')" if is_not_null else "NULL"
+            db.session.execute(
+                text(
+                    f"""
+                    UPDATE {table_name}
+                    SET {col} = {replacement}
+                    WHERE {col} IS NOT NULL
+                      AND typeof({col}) != 'text'
+                    """
+                )
+            )
+
     try:
         if table_exists("users"):
             if not column_exists("users", "phone"):
@@ -209,6 +230,8 @@ def _ensure_sqlite_runtime_compat(app):
                 db.session.execute(text("ALTER TABLE users ADD COLUMN is_verified_owner INTEGER NOT NULL DEFAULT 0"))
             if not column_exists("users", "last_login"):
                 db.session.execute(text("ALTER TABLE users ADD COLUMN last_login DATETIME"))
+            # Guard against legacy/bad datetime storage that breaks SQLAlchemy DateTime parsing.
+            sanitize_datetime_columns("users", ["created_at", "updated_at", "last_login"])
 
         if table_exists("tractors"):
             if not column_exists("tractors", "pincode"):
@@ -225,6 +248,28 @@ def _ensure_sqlite_runtime_compat(app):
                 db.session.execute(
                     text("ALTER TABLE tractors ADD COLUMN availability_status TEXT NOT NULL DEFAULT 'available'")
                 )
+            sanitize_datetime_columns("tractors", ["created_at", "updated_at"])
+
+        sanitize_datetime_columns(
+            "bookings",
+            [
+                "start_time",
+                "end_time",
+                "accepted_at",
+                "en_route_at",
+                "started_at",
+                "completed_at",
+                "farmer_confirmed_at",
+                "cancelled_at",
+                "paid_at",
+                "created_at",
+                "updated_at",
+            ],
+        )
+        sanitize_datetime_columns("notifications", ["created_at", "updated_at"])
+        sanitize_datetime_columns("payments", ["created_at", "updated_at"])
+        sanitize_datetime_columns("reviews", ["created_at", "updated_at"])
+        sanitize_datetime_columns("owner_earnings", ["created_at", "updated_at"])
 
         db.session.commit()
     except Exception as exc:

@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
-from sqlalchemy import func
+from sqlalchemy import func, or_
 
 from app.decorators import role_required
 from app.errors import AppError
@@ -21,6 +21,28 @@ from app.services import (
 )
 
 web_dashboard_bp = Blueprint("web_dashboard", __name__)
+
+
+def _is_sqlite():
+    try:
+        return db.engine.url.get_backend_name() == "sqlite"
+    except Exception:
+        return False
+
+
+def _safe_datetime_query(query, model, *column_names):
+    """
+    SQLite guard: old rows may contain numeric datetime values that break SQLAlchemy parsing.
+    Keep only NULL or text datetime storage on affected columns.
+    """
+    if not _is_sqlite():
+        return query
+    for column_name in column_names:
+        if not hasattr(model, column_name):
+            continue
+        col = getattr(model, column_name)
+        query = query.filter(or_(col.is_(None), func.typeof(col) == "text"))
+    return query
 
 
 @web_dashboard_bp.get("/dashboard")
@@ -49,18 +71,29 @@ def owner_dashboard():
     listings = Tractor.query.filter_by(owner_id=current_user.id).order_by(Tractor.created_at.desc()).all()
     tractor_listings = [item for item in listings if (item.equipment_type or "Tractor") == "Tractor"]
     equipment_listings = [item for item in listings if (item.equipment_type or "Tractor") != "Tractor"]
-    bookings = (
+    bookings_q = (
         Booking.query.join(Tractor, Tractor.id == Booking.tractor_id)
         .filter(Tractor.owner_id == current_user.id)
         .order_by(Booking.created_at.desc())
-        .all()
     )
-    notifications = (
-        Notification.query.filter_by(user_id=current_user.id)
-        .order_by(Notification.created_at.desc())
-        .limit(5)
-        .all()
+    bookings_q = _safe_datetime_query(
+        bookings_q,
+        Booking,
+        "created_at",
+        "updated_at",
+        "start_time",
+        "end_time",
+        "accepted_at",
+        "completed_at",
+        "paid_at",
     )
+    bookings = bookings_q.all()
+
+    notifications_q = Notification.query.filter_by(user_id=current_user.id, is_read=False).order_by(
+        Notification.created_at.desc()
+    )
+    notifications_q = _safe_datetime_query(notifications_q, Notification, "created_at", "updated_at")
+    notifications = notifications_q.limit(5).all()
     revenue_rows = (
         db.session.query(OwnerEarning, Booking, Tractor)
         .join(Booking, Booking.id == OwnerEarning.booking_id)
@@ -208,13 +241,25 @@ def farmer_dashboard():
     for row in addon_rows:
         addons_by_owner.setdefault(row.owner_id, []).append(row)
 
-    history = Booking.query.filter_by(farmer_id=current_user.id).order_by(Booking.created_at.desc()).limit(12).all()
-    notifications = (
-        Notification.query.filter_by(user_id=current_user.id)
-        .order_by(Notification.created_at.desc())
-        .limit(5)
-        .all()
+    history_q = Booking.query.filter_by(farmer_id=current_user.id).order_by(Booking.created_at.desc())
+    history_q = _safe_datetime_query(
+        history_q,
+        Booking,
+        "created_at",
+        "updated_at",
+        "start_time",
+        "end_time",
+        "accepted_at",
+        "completed_at",
+        "paid_at",
     )
+    history = history_q.limit(12).all()
+
+    notifications_q = Notification.query.filter_by(user_id=current_user.id, is_read=False).order_by(
+        Notification.created_at.desc()
+    )
+    notifications_q = _safe_datetime_query(notifications_q, Notification, "created_at", "updated_at")
+    notifications = notifications_q.limit(5).all()
     my_reviews = Review.query.filter_by(farmer_id=current_user.id).all()
     my_review_map = {r.tractor_id: r for r in my_reviews}
     return render_template(

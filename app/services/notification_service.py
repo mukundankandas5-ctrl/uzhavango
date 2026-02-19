@@ -17,7 +17,7 @@ class NotificationService:
     @staticmethod
     def latest_for_user(user_id, limit=10):
         return (
-            Notification.query.filter_by(user_id=user_id)
+            Notification.query.filter_by(user_id=user_id, is_read=False)
             .order_by(Notification.created_at.desc())
             .limit(limit)
             .all()
