@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% block title %}Owner Dashboard | UzhavanGo{% endblock %}
+{% block content %}
+<section class="dashboard-header">
+    <h1>Fleet Console</h1>
+    <p>Total earnings (Net): ₹{{ '%.2f'|format(total_earnings) }}</p>
+    <button type="button" id="revenueToggleBtn" class="btn line">View Revenue Breakdown</button>
+</section>
+
+<section class="card hidden" id="revenueBreakdownCard">
+    <h3>Revenue Breakdown</h3>
+    <div class="revenue-summary">
+        <article class="mini-card">
+            <p class="muted">Gross Revenue</p>
+            <h4>₹{{ '%.2f'|format(gross_total) }}</h4>
+        </article>
+        <article class="mini-card">
+            <p class="muted">Platform Fee</p>
+            <h4>₹{{ '%.2f'|format(platform_fee_total) }}</h4>
+        </article>
+        <article class="mini-card">
+            <p class="muted">Net Earnings</p>
+            <h4>₹{{ '%.2f'|format(total_earnings) }}</h4>
+        </article>
+    </div>
+
+    <div class="revenue-list">
+        {% for item in revenue_breakdown %}
+            <article class="list-item">
+                <strong>{{ item.tractor_title }}</strong>
+                <p>Farmer: {{ item.farmer_name }} | Hours: {{ item.hours }}</p>
+                <p>Gross: ₹{{ '%.2f'|format(item.gross_amount) }} | Fee: ₹{{ '%.2f'|format(item.platform_fee) }} | Net: ₹{{ '%.2f'|format(item.net_amount) }}</p>
+                <p>Booking #{{ item.booking_id }}{% if item.receipt_number %} | Receipt: {{ item.receipt_number }}{% endif %}</p>
+                <p class="muted">{{ item.created_at.strftime('%Y-%m-%d %H:%M') if item.created_at else '' }}</p>
+            </article>
+        {% else %}
+            <p class="muted">No completed paid transactions yet.</p>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="grid-2">
+    <article class="card">
+        <h3 id="listingFormTitle">Add Equipment</h3>
+        <form method="post" action="{{ url_for('web_dashboard.create_tractor') }}" enctype="multipart/form-data" data-loading-form>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <label id="listingNameLabel">Equipment Name</label>
+            <input name="title" id="listingNameInput" placeholder="Enter equipment name" required />
+            <label>Description</label>
+            <textarea name="description"></textarea>
+            <label>Price per hour</label>
+            <input name="price_per_hour" type="number" min="1" required />
+            <label>Pincode <span class="required-star">*</span></label>
+            <input name="pincode" type="text" inputmode="numeric" maxlength="6" minlength="6" pattern="[0-9]{6}" title="Enter a valid 6-digit pincode" placeholder="641602" required />
+            <label>Village</label>
+            <input name="village" type="text" placeholder="Optional village name" />
+            <label>District</label>
+            <input name="district" type="text" placeholder="Optional district name" />
+            <label>Equipment Type</label>
+            <select name="equipment_type" required>
+                {% for item in equipment_types %}
+                    <option value="{{ item }}">{{ item }}</option>
+                {% endfor %}
+            </select>
+            <label>Availability Status</label>
+            <select name="availability_status" required>
+                <option value="available">Available</option>
+                <option value="busy">Busy</option>
+                <option value="offline">Offline</option>
+            </select>
+            <label>Location</label>
+            <input name="location_label" id="locationLabel" />
+            <input type="hidden" name="latitude" id="lat" />
+            <input type="hidden" name="longitude" id="lng" />
+            <div class="upload-choice-row">
+                <label><input type="radio" name="image_source" value="file" checked /> Upload from device</label>
+                <label><input type="radio" name="image_source" value="camera" /> Use camera</label>
+            </div>
+            <div id="fileUploadBlock">
+                <label>Image</label>
+                <input name="tractor_image" type="file" accept="image/*" />
+            </div>
+            <div id="cameraBlock" class="camera-block hidden">
+                <video id="cameraPreview" autoplay playsinline></video>
+                <canvas id="cameraCanvas" class="hidden"></canvas>
+                <input type="hidden" name="camera_image" id="cameraImageInput" />
+                <div class="inline-actions">
+                    <button type="button" id="startCameraBtn" class="btn line">Start Camera</button>
+                    <button type="button" id="captureCameraBtn" class="btn line">Capture</button>
+                </div>
+                <p id="cameraStatus" class="muted">Camera not started.</p>
+            </div>
+            <label><input type="checkbox" name="is_available" checked /> Available now</label>
+            <button type="button" id="geoBtn" class="btn line">Use Geolocation</button>
+            <p id="geoStatus" class="muted">Location not captured.</p>
+            <button class="btn black" type="submit" id="listingSubmitBtn" data-loading-label="Publishing...">Publish Equipment</button>
+        </form>
+    </article>
+
+    <article class="card">
+        <h3>Recent Notifications</h3>
+        {% for n in notifications %}
+            <div class="list-item">
+                <strong>{{ n.title }}</strong>
+                <p>{{ n.message }}</p>
+            </div>
+        {% else %}
+            <p class="muted">No notifications yet.</p>
+        {% endfor %}
+    </article>
+</section>
+
+<section class="card">
+    <h3>Your Tractors</h3>
+    <div class="cards">
+        {% for tractor in tractor_listings %}
+            <article class="mini-card">
+                <h4>{{ tractor.title }}</h4>
+                <p>₹{{ tractor.price_per_hour }}/hr</p>
+                <p>Type: {{ tractor.equipment_type }}</p>
+                <p>Pincode: {{ tractor.pincode }}</p>
+                <p>Village: {{ tractor.village or 'N/A' }}</p>
+                <p>{{ tractor.location_label or 'Location not set' }}</p>
+                <p>Status: <span class="availability-badge {{ tractor.availability_status }}">{{ tractor.availability_status.title() }}</span></p>
+                <p>Rating ⭐ {{ tractor.average_rating }} ({{ tractor.rating_count }})</p>
+                <form method="post" action="{{ url_for('web_dashboard.toggle_tractor', tractor_id=tractor.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                    <select name="availability_status">
+                        <option value="available" {% if tractor.availability_status == 'available' %}selected{% endif %}>Available</option>
+                        <option value="busy" {% if tractor.availability_status == 'busy' %}selected{% endif %}>Busy</option>
+                        <option value="offline" {% if tractor.availability_status == 'offline' %}selected{% endif %}>Offline</option>
+                    </select>
+                    <button class="btn line" type="submit">Update Status</button>
+                </form>
+            </article>
+        {% else %}
+            <p class="muted">No tractors listed.</p>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="card">
+    <h3>Your Equipment Add-ons</h3>
+    <div class="cards">
+        {% for equipment in equipment_listings %}
+            <article class="mini-card">
+                <h4>{{ equipment.title }}</h4>
+                <p>₹{{ equipment.price_per_hour }}/hr</p>
+                <p>Type: {{ equipment.equipment_type }}</p>
+                <p>Pincode: {{ equipment.pincode }}</p>
+                <p>Village: {{ equipment.village or 'N/A' }}</p>
+                <p>{{ equipment.location_label or 'Location not set' }}</p>
+                <p>Status: <span class="availability-badge {{ equipment.availability_status }}">{{ equipment.availability_status.title() }}</span></p>
+                <p>Rating ⭐ {{ equipment.average_rating }} ({{ equipment.rating_count }})</p>
+                <form method="post" action="{{ url_for('web_dashboard.toggle_tractor', tractor_id=equipment.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                    <select name="availability_status">
+                        <option value="available" {% if equipment.availability_status == 'available' %}selected{% endif %}>Available</option>
+                        <option value="busy" {% if equipment.availability_status == 'busy' %}selected{% endif %}>Busy</option>
+                        <option value="offline" {% if equipment.availability_status == 'offline' %}selected{% endif %}>Offline</option>
+                    </select>
+                    <button class="btn line" type="submit">Update Status</button>
+                </form>
+            </article>
+        {% else %}
+            <p class="muted">No equipment add-ons listed.</p>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="card">
+    <h3>Booking Pipeline</h3>
+    {% for booking in bookings %}
+        <div class="list-item">
+            <div>
+                <strong>{{ booking.tractor.title }}</strong>
+                <p>Farmer: {{ booking.farmer.full_name }} | Phone: {{ booking.farmer.phone }} | {{ booking.hours }}h | ₹{{ booking.total_amount }}</p>
+                <p>Status: <span class="pill">{{ booking.status.replace('_', ' ').title() }}</span></p>
+                {% if booking.payment %}
+                    <p>Receipt: <a href="{{ url_for('web_receipt.receipt_page', receipt_number=booking.payment.receipt_number) }}">{{ booking.payment.receipt_number }}</a></p>
+                {% endif %}
+            </div>
+            <form method="post" action="{{ url_for('web_dashboard.update_booking_status', booking_id=booking.id) }}" class="inline-actions">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                {% if booking.status in ['requested', 'pending'] %}
+                    <button class="btn black" name="status" value="accepted">Accept</button>
+                    <button class="btn line" name="status" value="cancelled">Reject</button>
+                {% elif booking.status == 'accepted' %}
+                    <button class="btn black" name="status" value="en_route">Mark En Route</button>
+                    <button class="btn line" name="status" value="cancelled">Cancel</button>
+                {% elif booking.status == 'en_route' %}
+                    <button class="btn black" name="status" value="working">Mark Working</button>
+                {% elif booking.status == 'working' %}
+                    <button class="btn black" name="status" value="completed">Mark Completed</button>
+                {% endif %}
+            </form>
+        </div>
+    {% else %}
+        <p class="muted">No bookings yet.</p>
+    {% endfor %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/owner.js') }}"></script>
+{% endblock %}

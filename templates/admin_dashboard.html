@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard | UzhavanGo{% endblock %}
+{% block content %}
+<section class="dashboard-header">
+    <h1>Admin Dashboard</h1>
+    <p>Platform health, growth, and transaction visibility.</p>
+</section>
+
+<section class="kpi-grid">
+    <article class="card"><h3>Total Users</h3><p class="kpi">{{ total_users }}</p></article>
+    <article class="card"><h3>Total Tractors</h3><p class="kpi">{{ total_tractors }}</p></article>
+    <article class="card"><h3>Total Bookings</h3><p class="kpi">{{ total_bookings }}</p></article>
+    <article class="card"><h3>Total Revenue</h3><p class="kpi">₹{{ '%.2f'|format(total_revenue) }}</p></article>
+    <article class="card"><h3>Commission Earned</h3><p class="kpi">₹{{ '%.2f'|format(commission_total) }}</p></article>
+    <article class="card"><h3>Owner Payout</h3><p class="kpi">₹{{ '%.2f'|format(owner_payout_total) }}</p></article>
+    <article class="card"><h3>Platform Rating</h3><p class="kpi">{{ '%.2f'|format(avg_rating) }}</p></article>
+</section>
+
+<section class="card">
+    <h3>Demand & Commission Controls</h3>
+    <form method="post" action="{{ url_for('web_admin.update_platform_settings') }}" class="inline-actions">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <div>
+            <label>Commission %</label>
+            <input type="number" name="commission_pct" min="0" max="100" step="0.1" value="{{ commission_pct }}" required />
+        </div>
+        <div>
+            <label>Surge Threshold (bookings per pincode)</label>
+            <input type="number" name="surge_threshold" min="1" value="{{ surge_threshold }}" required />
+        </div>
+        <button class="btn black" type="submit">Save Settings</button>
+    </form>
+</section>
+
+<section class="grid-2">
+    <article class="card">
+        <h3>Top 5 Most Booked Tractors</h3>
+        <canvas id="topTractorsChart" height="180"></canvas>
+    </article>
+    <article class="card">
+        <h3>Recent Transactions</h3>
+        {% for row in recent_transactions %}
+            <div class="list-item">
+                <strong>{{ row.receipt_number }}</strong>
+                <p>Booking #{{ row.booking_id }} | ₹{{ row.amount }} | {{ row.created_at.strftime('%Y-%m-%d') }}</p>
+            </div>
+        {% else %}
+            <p class="muted">No transactions yet.</p>
+        {% endfor %}
+    </article>
+</section>
+
+<section class="grid-2">
+    <article class="card">
+        <h3>Demand Heatmap Data (District-wise)</h3>
+        <canvas id="demandDistrictChart" height="180"></canvas>
+    </article>
+    <article class="card">
+        <h3>Low Supply Areas</h3>
+        <canvas id="supplyDistrictChart" height="180"></canvas>
+    </article>
+</section>
+
+<section class="card">
+    <h3>Fraud Detection Alerts</h3>
+    {% for item in fraud_alerts %}
+        <div class="list-item">
+            <strong>Alert</strong>
+            <p>{{ item }}</p>
+        </div>
+    {% else %}
+        <p class="muted">No active fraud alerts.</p>
+    {% endfor %}
+</section>
+
+<section class="card">
+    <h3>Owner Verification</h3>
+    {% for owner in owners %}
+        <div class="list-item">
+            <strong>{{ owner.full_name }}</strong>
+            <p>{{ owner.email }} | {{ owner.phone }}</p>
+            <form method="post" action="{{ url_for('web_admin.verify_owner', owner_id=owner.id) }}" class="inline-actions">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <input type="hidden" name="is_verified_owner" value="{{ 'false' if owner.is_verified_owner else 'true' }}" />
+                <button class="btn line" type="submit">
+                    {{ 'Remove Verified Badge' if owner.is_verified_owner else 'Mark Verified' }}
+                </button>
+            </form>
+        </div>
+    {% else %}
+        <p class="muted">No owners found.</p>
+    {% endfor %}
+</section>
+
+<div class="inline-actions"><a class="btn black" href="{{ url_for('web_admin.analytics_dashboard') }}">Open Revenue Analytics</a></div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const labels = {{ top_tractors|map(attribute='tractor_title')|list|tojson }};
+const dataVals = {{ top_tractors|map(attribute='booking_count')|list|tojson }};
+const demandLabels = {{ demand_by_district|map(attribute='district')|list|tojson }};
+const demandVals = {{ demand_by_district|map(attribute='bookings')|list|tojson }};
+const supplyLabels = {{ supply_by_district|map(attribute='district')|list|tojson }};
+const supplyVals = {{ supply_by_district|map(attribute='supply')|list|tojson }};
+new Chart(document.getElementById('topTractorsChart'), {
+  type: 'bar',
+  data: { labels, datasets: [{ label: 'Bookings', data: dataVals, backgroundColor: '#0A7F3F' }] },
+  options: { responsive: true, plugins: { legend: { display: false } } }
+});
+new Chart(document.getElementById('demandDistrictChart'), {
+  type: 'bar',
+  data: { labels: demandLabels, datasets: [{ label: 'Bookings', data: demandVals, backgroundColor: '#111' }] },
+  options: { responsive: true, plugins: { legend: { display: false } } }
+});
+new Chart(document.getElementById('supplyDistrictChart'), {
+  type: 'line',
+  data: { labels: supplyLabels, datasets: [{ label: 'Tractors', data: supplyVals, borderColor: '#0A7F3F', tension: 0.3 }] },
+  options: { responsive: true, plugins: { legend: { display: false } } }
+});
+</script>
+{% endblock %}

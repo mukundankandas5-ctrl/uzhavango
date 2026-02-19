@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}{{ tractor.title }} | UzhavanGo{% endblock %}
+{% block content %}
+<section class="tractor-detail-wrap">
+    <article class="tractor-detail-card">
+        {% if tractor.image_path %}
+            <img src="{{ url_for('static', filename=tractor.image_path) }}" alt="{{ tractor.title }}" class="tractor-detail-image" />
+        {% endif %}
+        <div class="tractor-detail-content">
+            <h1>{{ tractor.title }}</h1>
+            <p>₹{{ tractor.price_per_hour }}/hour</p>
+            <p>Pincode: {{ tractor.pincode }}</p>
+            <p>Village: {{ tractor.village or 'N/A' }}</p>
+            <p>Rating: ⭐ {{ tractor.average_rating or tractor.rating_avg }}</p>
+            <hr />
+            <h3>Owner Details</h3>
+            <p>{{ owner.full_name }}</p>
+            <p>Phone (backup): {{ owner.phone }}</p>
+            <div class="inline-actions">
+                <a href="tel:{{ owner.phone }}" class="btn line">Call Owner</a>
+                <a href="{{ url_for('web_dashboard.farmer_dashboard') }}" class="btn black">Back To Booking</a>
+            </div>
+            {% if recent_booking %}
+            <hr />
+            <h3>In-App Chat (Booking #{{ recent_booking.id }})</h3>
+            <div id="chatBox" class="chat-box"></div>
+            <div class="inline-actions">
+                <input id="chatInput" placeholder="Message owner..." />
+                <button type="button" class="btn black" id="chatSendBtn">Send</button>
+            </div>
+            <script>
+                window.bookingChatId = {{ recent_booking.id }};
+                window.currentUserId = {{ current_user.id }};
+            </script>
+            {% else %}
+            <p class="muted">Chat unlocks after you make a booking for this tractor.</p>
+            {% endif %}
+        </div>
+    </article>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const bookingId = window.bookingChatId;
+    if (!bookingId) return;
+    const box = document.getElementById("chatBox");
+    const input = document.getElementById("chatInput");
+    const send = document.getElementById("chatSendBtn");
+    if (!box || !input || !send) return;
+
+    const render = (rows) => {
+        box.innerHTML = "";
+        rows.forEach((row) => {
+            const el = document.createElement("div");
+            el.className = "chat-line" + (row.sender_id === window.currentUserId ? " me" : "");
+            el.textContent = `${row.sender_name}: ${row.message}`;
+            box.appendChild(el);
+        });
+        box.scrollTop = box.scrollHeight;
+    };
+
+    const load = async () => {
+        try {
+            const res = await fetch(`/bookings/${bookingId}/messages`);
+            const data = await res.json();
+            if (Array.isArray(data)) render(data);
+        } catch (_err) {}
+    };
+
+    send.addEventListener("click", async () => {
+        const message = (input.value || "").trim();
+        if (!message) return;
+        await fetch(`/bookings/${bookingId}/messages`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token() }}" },
+            body: JSON.stringify({ message }),
+        });
+        input.value = "";
+        load();
+    });
+
+    load();
+    setInterval(load, 6000);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Register | UzhavanGo{% endblock %}
+{% block content %}
+<section class="auth-wrap">
+    <form method="post" class="card auth-card" data-loading-form>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <h2 class="hero-signature"><span class="brand-black">Uzhavan</span><span class="brand-green">Go</span></h2>
+        <p>Create account and choose your role.</p>
+        <label>Full name</label>
+        <input name="full_name" required />
+        <label>Email</label>
+        <input name="email" type="email" required />
+        <label>Phone</label>
+        <input name="phone" type="tel" inputmode="numeric" maxlength="10" minlength="10" pattern="[0-9]{10}" placeholder="9876543210" title="Enter a 10-digit phone number" required />
+        <label>Password</label>
+        <input name="password" type="password" required />
+        <label>Role</label>
+        <select name="role" required>
+            <option value="">Select role</option>
+            <option value="farmer">Farmer</option>
+            <option value="owner">Owner</option>
+        </select>
+        <button class="btn black" type="submit" data-loading-label="Creating account...">Create Account</button>
+    </form>
+</section>
+{% endblock %}

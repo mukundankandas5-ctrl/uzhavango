@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}Login | UzhavanGo{% endblock %}
+{% block content %}
+<section class="auth-wrap">
+    <div class="card auth-card auth-choice-card">
+        <img
+            src="{{ url_for('static', filename='images/uzhavango-logo-192.png') }}"
+            alt="UzhavanGo Logo"
+            class="auth-logo"
+            onerror="this.style.display='none';"
+        />
+        <h2 class="hero-signature"><span class="brand-black">Uzhavan</span><span class="brand-green">Go</span></h2>
+        <p>Choose how you want to continue.</p>
+        <div class="role-switch">
+            <button type="button" class="btn line role-btn" data-role-target="farmerLoginForm">Farmer</button>
+            <button type="button" class="btn line role-btn" data-role-target="ownerLoginForm">Owner</button>
+        </div>
+    </div>
+
+    <form method="post" id="farmerLoginForm" class="card auth-card hidden" data-loading-form>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <input type="hidden" name="role" value="farmer" />
+        <h3>Farmer Login</h3>
+        <label>Full Name</label>
+        <input name="full_name" id="farmerName" />
+        <label>Phone Number</label>
+        <input
+            name="phone"
+            id="farmerPhone"
+            type="tel"
+            inputmode="numeric"
+            minlength="10"
+            maxlength="10"
+            pattern="[0-9]{10}"
+            placeholder="9876543210"
+            title="Enter a valid 10-digit phone number"
+        />
+        <button class="btn black" type="submit" data-loading-label="Continuing...">Continue</button>
+    </form>
+
+    <form method="post" id="ownerLoginForm" class="card auth-card hidden" data-loading-form>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <input type="hidden" name="role" value="owner" />
+        <h3>Owner Login</h3>
+        <label>Email</label>
+        <input type="email" name="email" id="ownerEmail" />
+        <label>Password</label>
+        <input type="password" name="password" id="ownerPassword" />
+        <button class="btn black" type="submit" data-loading-label="Signing in...">Sign In</button>
+    </form>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const roleButtons = [...document.querySelectorAll(".role-btn")];
+    const farmerForm = document.getElementById("farmerLoginForm");
+    const ownerForm = document.getElementById("ownerLoginForm");
+    const farmerName = document.getElementById("farmerName");
+    const farmerPhone = document.getElementById("farmerPhone");
+    const ownerEmail = document.getElementById("ownerEmail");
+    const ownerPassword = document.getElementById("ownerPassword");
+
+    const showForm = (targetId) => {
+        const showFarmer = targetId === "farmerLoginForm";
+        farmerForm.classList.toggle("hidden", !showFarmer);
+        ownerForm.classList.toggle("hidden", showFarmer);
+        roleButtons.forEach((btn) => btn.classList.toggle("black", btn.dataset.roleTarget === targetId));
+
+        farmerName.required = showFarmer;
+        farmerPhone.required = showFarmer;
+        ownerEmail.required = !showFarmer;
+        ownerPassword.required = !showFarmer;
+    };
+
+    roleButtons.forEach((btn) => {
+        btn.addEventListener("click", () => showForm(btn.dataset.roleTarget));
+    });
+});
+</script>
+{% endblock %}

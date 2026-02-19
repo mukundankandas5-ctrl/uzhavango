@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block title %}UzhavanGo | Farm Mobility{% endblock %}
+{% block content %}
+<section class="premium-hero">
+    <div class="hero-left card">
+        <p class="kicker">Discover Tractors By Pincode</p>
+        <h1 class="hero-signature"><span class="brand-black">Uzhavan</span><span class="brand-green">Go</span></h1>
+        <p class="hero-subtext">Search available farm machinery in your locality using pincode.</p>
+        <form class="widget premium-widget" id="localitySearchForm">
+            <label>Enter pincode</label>
+            <div class="search-input-wrap">
+                <span class="search-icon">⌖</span>
+                <input id="localityInput" placeholder="Enter pincode (e.g., 641602)" />
+            </div>
+            <label>Equipment Type</label>
+            <div class="filter-chips" id="equipmentChips">
+                <button type="button" class="chip active" data-equipment="">All</button>
+                <button type="button" class="chip" data-equipment="Tractor">Tractor</button>
+                <button type="button" class="chip" data-equipment="Rotavator">Rotavator</button>
+                <button type="button" class="chip" data-equipment="Harvester">Harvester</button>
+                <button type="button" class="chip" data-equipment="Seeder">Seeder</button>
+                <button type="button" class="chip" data-equipment="Sprayer">Sprayer</button>
+                <button type="button" class="chip" data-equipment="Plough">Plough</button>
+            </div>
+            <label class="mode-toggle">
+                <input type="checkbox" id="addonsOnlyToggle" />
+                Rent add-on equipment only
+            </label>
+            <div class="search-actions">
+                <button type="submit" class="btn black">Find Tractors</button>
+                <button type="button" class="btn line" id="useLocationBtn">📍 Use My Location</button>
+            </div>
+            <div class="search-loading hidden" id="searchLoading">Detecting location and fetching tractors...</div>
+        </form>
+        <section class="search-meta hidden" id="searchMeta"></section>
+        <section class="search-alert hidden" id="demandAlert"></section>
+        <section class="search-alert hidden" id="weatherAlert"></section>
+        <section class="search-results" id="searchResults"></section>
+        <section class="search-empty hidden" id="searchEmpty">
+            No tractors available in this locality yet.
+        </section>
+        <section class="search-hint" id="searchHint">
+            Enter a valid pincode and click Find Tractors.
+        </section>
+        <template id="tractorResultTemplate">
+            <article class="search-card">
+                <img class="search-card-image" alt="Tractor" />
+                <div class="search-card-body">
+                    <h4 class="search-title"></h4>
+                    <p class="search-price"></p>
+                    <p class="search-location"></p>
+                    <p class="search-rating"></p>
+                    <a href="{{ url_for('web_auth.login') }}" class="btn black small">Book</a>
+                </div>
+            </article>
+        </template>
+        <script>
+            window.isFarmerLoggedIn = {{ 'true' if current_user.is_authenticated and current_user.role == 'farmer' else 'false' }};
+            window.farmerDashboardUrl = "{{ url_for('web_dashboard.farmer_dashboard') }}";
+            window.loginUrl = "{{ url_for('web_auth.login') }}";
+        </script>
+    </div>
+
+    <div class="hero-right card">
+        <div class="hero-branding">
+            <img
+                src="{{ url_for('static', filename='images/uzhavango-logo-192.png') }}"
+                alt="UzhavanGo Logo"
+                class="hero-logo"
+                onerror="this.style.display='none';"
+            />
+        </div>
+
+        <div class="tractor-hero-art">
+            <img
+                src="{{ url_for('static', filename='images/hero-tractor.avif') }}"
+                alt="UzhavanGo Tractor"
+                class="hero-tractor"
+            />
+        </div>
+
+        <div class="platform-stats fade-start" id="platformStatsPanel">
+            <article class="stat-card">
+                <p class="stat-label">Average Rating</p>
+                <p class="stat-value"><span class="stat-icon">★</span> <span data-stat="average_rating">0.0</span></p>
+            </article>
+            <article class="stat-card">
+                <p class="stat-label">Verified Owners</p>
+                <p class="stat-value"><span class="stat-icon">🚜</span> <span data-stat="verified_owners">0</span>+</p>
+            </article>
+            <article class="stat-card">
+                <p class="stat-label">Bookings Completed</p>
+                <p class="stat-value"><span class="stat-icon">📍</span> <span data-stat="total_bookings">0</span>+</p>
+            </article>
+            <article class="stat-card">
+                <p class="stat-label">Villages Served</p>
+                <p class="stat-value"><span class="stat-icon">🌾</span> <span data-stat="villages_served">0</span>+</p>
+            </article>
+        </div>
+    </div>
+</section>
+{% endblock %}

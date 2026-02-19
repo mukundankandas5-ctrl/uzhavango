@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% block title %}Farmer Dashboard | UzhavanGo{% endblock %}
+{% block content %}
+<section class="dashboard-header">
+    <h1>Farmer Booking Desk</h1>
+    <p>Available fleet with live pricing and ratings.</p>
+</section>
+
+<section class="card">
+    <h3>Recent Notifications</h3>
+    {% for n in notifications %}
+        <div class="list-item">
+            <strong>{{ n.title }}</strong>
+            <p>{{ n.message }}</p>
+        </div>
+    {% else %}
+        <p class="muted">No notifications yet.</p>
+    {% endfor %}
+</section>
+
+<section class="cards">
+{% for tractor in tractors_page.items %}
+    <article class="mini-card">
+        <div class="tractor-photo-wrap">
+            {% if tractor.image_path %}
+                <img src="{{ url_for('static', filename=tractor.image_path) }}" alt="{{ tractor.title }}" class="tractor-photo" />
+            {% else %}
+                <div class="tractor-photo placeholder">No Photo</div>
+            {% endif %}
+        </div>
+        <h4>{{ tractor.title }}</h4>
+        <p>Owner: {{ tractor.owner.full_name }}</p>
+        <p>Type: {{ tractor.equipment_type }}</p>
+        <p>Price: ₹{{ tractor.price_per_hour }}/hr</p>
+        <p>Pincode: {{ tractor.pincode }}</p>
+        <p>Village: {{ tractor.village or 'N/A' }}</p>
+        <p>Location: {{ tractor.location_label or 'Not shared' }}</p>
+        <p>Status: <span class="availability-badge {{ tractor.availability_status }}">{{ tractor.availability_status.title() }}</span></p>
+        <p class="rating-line">Rating: <span class="gold-stars">★★★★★</span> {{ tractor.average_rating }} ({{ tractor.rating_count }})</p>
+        <div class="inline-actions">
+            {% if tractor.owner.is_verified_owner %}<span class="pill">Verified Owner</span>{% endif %}
+            {% if tractor.average_rating and tractor.average_rating > 4.5 %}<span class="pill">Top Rated</span>{% endif %}
+        </div>
+        <form method="post" action="{{ url_for('web_dashboard.create_booking') }}" data-loading-form class="booking-form" data-base-price="{{ tractor.price_per_hour }}" data-commission-pct="{{ commission_pct }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <input type="hidden" name="tractor_id" value="{{ tractor.id }}" />
+            <input type="hidden" name="addon_quantities" class="addon-quantities-input" value="{}" />
+            <label>Date</label>
+            <input type="date" name="booking_date" required />
+            <label>Start time</label>
+            <input type="time" name="start_time" required />
+            <label>Hours</label>
+            <input type="number" name="hours" min="1" required class="hours-input" />
+            <div class="addon-panel">
+                <div class="addon-panel-head">
+                    <h5>Enhance Your Equipment</h5>
+                    <p>Add tools to maximize your farm efficiency</p>
+                </div>
+                <div class="addon-scroll">
+                    {% for addon in addons_by_owner.get(tractor.owner_id, []) %}
+                        <article class="addon-card" data-addon-id="{{ addon.id }}" data-addon-price="{{ addon.price_per_hour }}">
+                            <div class="addon-image-wrap">
+                                {% if addon.image_path %}
+                                    <img src="{{ url_for('static', filename=addon.image_path) }}" alt="{{ addon.title }}" class="addon-image" />
+                                {% else %}
+                                    <div class="addon-image placeholder">No Photo</div>
+                                {% endif %}
+                            </div>
+                            <h6>{{ addon.title }}</h6>
+                            <p>₹{{ addon.price_per_hour }}/hr</p>
+                            <div class="addon-actions">
+                                <button type="button" class="addon-minus">−</button>
+                                <span class="addon-qty">0</span>
+                                <button type="button" class="addon-plus">+</button>
+                            </div>
+                        </article>
+                    {% else %}
+                        <p class="muted">No add-ons available from this owner.</p>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="price-breakdown">
+                <p><span>Tractor Rental:</span> <strong class="base-total">₹0.00</strong></p>
+                <p><span>Equipment Add-ons:</span> <strong class="addon-total">₹0.00</strong></p>
+                <p><span>Platform Fee:</span> <strong class="fee-total">₹0.00</strong></p>
+                <p class="grand-line"><span>Total:</span> <strong class="grand-total">₹0.00</strong></p>
+            </div>
+            <label>Note</label>
+            <input name="farmer_note" />
+            <button class="btn black" type="submit" data-loading-label="Requesting...">Book</button>
+        </form>
+        <form method="post" action="{{ url_for('web_dashboard.create_review') }}" class="review-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <input type="hidden" name="tractor_id" value="{{ tractor.id }}" />
+            <input type="hidden" name="rating" class="rating-input" value="{{ my_review_map.get(tractor.id).rating if my_review_map.get(tractor.id) else 0 }}" />
+            <label>Your Rating</label>
+            <div class="star-picker" data-initial="{{ my_review_map.get(tractor.id).rating if my_review_map.get(tractor.id) else 0 }}">
+                <button type="button" class="star-btn" data-value="1">☆</button>
+                <button type="button" class="star-btn" data-value="2">☆</button>
+                <button type="button" class="star-btn" data-value="3">☆</button>
+                <button type="button" class="star-btn" data-value="4">☆</button>
+                <button type="button" class="star-btn" data-value="5">☆</button>
+            </div>
+            <input name="comment" placeholder="Comment" value="{{ my_review_map.get(tractor.id).comment if my_review_map.get(tractor.id) else '' }}" />
+            <button class="btn line" type="submit">Submit Review</button>
+        </form>
+    </article>
+{% else %}
+    <p class="muted">No available tractors.</p>
+{% endfor %}
+</section>
+
+<section class="pagination">
+    {% if tractors_page.has_prev %}
+        <a href="{{ url_for('web_dashboard.farmer_dashboard', page=tractors_page.prev_num) }}" class="btn line">Previous</a>
+    {% endif %}
+    <span>Page {{ tractors_page.page }} / {{ tractors_page.pages or 1 }}</span>
+    {% if tractors_page.has_next %}
+        <a href="{{ url_for('web_dashboard.farmer_dashboard', page=tractors_page.next_num) }}" class="btn line">Next</a>
+    {% endif %}
+</section>
+
+<section class="card">
+    <h3>Your Booking History</h3>
+    {% for item in booking_history %}
+        <div class="list-item">
+            <strong>Booking #{{ item.id }}</strong>
+            <p>Status {{ item.status.replace('_', ' ').title() }} | ₹{{ item.total_amount }} | {{ item.start_time.strftime('%Y-%m-%d %H:%M') }}</p>
+            <p class="muted">Timeline: Pending → Accepted → En Route → Working → Completed</p>
+            <div class="inline-actions">
+                {% if item.status == 'completed' %}
+                    <form method="post" action="{{ url_for('web_dashboard.farmer_update_booking_status', booking_id=item.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                        <input type="hidden" name="status" value="confirm_completed" />
+                        <input type="number" min="1" name="confirmed_hours" value="{{ item.hours }}" required />
+                        <button class="btn black" type="submit">Confirm Completion</button>
+                    </form>
+                {% endif %}
+                {% if item.payment %}
+                    <a class="btn line" href="{{ url_for('web_receipt.receipt_page', receipt_number=item.payment.receipt_number) }}">View Receipt</a>
+                {% endif %}
+            </div>
+        </div>
+    {% else %}
+        <p class="muted">No bookings yet.</p>
+    {% endfor %}
+</section>
+{% endblock %}

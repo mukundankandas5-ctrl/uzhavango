@@ -1,0 +1,108 @@
+#:import dp kivy.metrics.dp
+
+<LoginScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        padding: dp(24)
+        spacing: dp(14)
+        MDLabel:
+            text: "[font=BrandSerif][color=#111111]Uzhavan[/color][color=#0A7F3F]Go[/color][/font]"
+            markup: True
+            halign: "left"
+            font_style: "H3"
+        MDLabel:
+            text: "Login"
+            font_style: "H5"
+        MDTextField:
+            hint_text: "Email"
+            mode: "round"
+        MDTextField:
+            hint_text: "Password"
+            mode: "round"
+            password: True
+        MDRaisedButton:
+            text: "SIGN IN"
+            on_release: app.root.current = "dashboard"
+
+<DashboardScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        padding: dp(20)
+        spacing: dp(12)
+        MDBoxLayout:
+            adaptive_height: True
+            MDLabel:
+                text: "[font=BrandSerif][color=#111111]Uzhavan[/color][color=#0A7F3F]Go[/color][/font]"
+                markup: True
+                font_style: "H4"
+            MDIconButton:
+                icon: "bell-outline"
+        MDCard:
+            radius: [24, 24, 24, 24]
+            padding: dp(14)
+            orientation: "vertical"
+            MDLabel:
+                text: "Tractor: Mahindra"
+                bold: True
+            MDLabel:
+                text: "Average Rating: " + root.avg_rating
+            StarRow:
+                id: reviewStars
+                size_hint_y: None
+                height: dp(44)
+                MDBoxLayout:
+                    spacing: dp(2)
+                    MDIconButton:
+                        id: star_1
+                        icon: "star-outline"
+                        user_font_size: "28sp"
+                        on_release: reviewStars.set_rating(1)
+                    MDIconButton:
+                        id: star_2
+                        icon: "star-outline"
+                        user_font_size: "28sp"
+                        on_release: reviewStars.set_rating(2)
+                    MDIconButton:
+                        id: star_3
+                        icon: "star-outline"
+                        user_font_size: "28sp"
+                        on_release: reviewStars.set_rating(3)
+                    MDIconButton:
+                        id: star_4
+                        icon: "star-outline"
+                        user_font_size: "28sp"
+                        on_release: reviewStars.set_rating(4)
+                    MDIconButton:
+                        id: star_5
+                        icon: "star-outline"
+                        user_font_size: "28sp"
+                        on_release: reviewStars.set_rating(5)
+        MDRaisedButton:
+            text: "Open Receipt"
+            on_release: app.root.current = "receipt"
+
+<ReceiptScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        padding: dp(20)
+        spacing: dp(12)
+        MDLabel:
+            text: "[font=BrandSerif][color=#111111]Uzhavan[/color][color=#0A7F3F]Go[/color][/font]"
+            markup: True
+            font_style: "H4"
+        MDCard:
+            radius: [24, 24, 24, 24]
+            padding: dp(16)
+            orientation: "vertical"
+            MDLabel:
+                text: "Receipt"
+                bold: True
+            MDLabel:
+                text: "Receipt Number: " + root.receipt_no
+            MDLabel:
+                text: "Status: Paid"
+                theme_text_color: "Custom"
+                text_color: 0.04, 0.5, 0.25, 1
+        MDRaisedButton:
+            text: "Back"
+            on_release: app.root.current = "dashboard"

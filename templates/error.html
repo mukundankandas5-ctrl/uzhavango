@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}Error | UzhavanGo{% endblock %}
+{% block content %}
+<section class="auth-wrap">
+    <div class="card auth-card">
+        <h2>Request Error</h2>
+        <p>{{ message }}</p>
+        <a href="{{ url_for('web_auth.landing') }}" class="btn black">Go Home</a>
+    </div>
+</section>
+{% endblock %}
